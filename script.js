@@ -7,6 +7,7 @@ document.addEventListener('DOMContentLoaded', function () {
   initNavbar();
   initMobileMenu();
   initGalleryLightbox();
+  initCategoryAlbumsModal();
   initScrollReveal();
   initContactForm();
   initSmoothScroll();
@@ -71,7 +72,12 @@ function initGalleryLightbox() {
   if (!lightbox || !lightboxImage || !lightboxClose) return;
 
   galleryItems.forEach(item => {
-    item.addEventListener('click', function () {
+    item.addEventListener('click', function (e) {
+      // If this item is category album trigger, let category album modal handle it
+      if (this.classList.contains('category-album-trigger') || this.closest('.photo-list-item')) {
+        return;
+      }
+
       // Get the currently visible slide, or fall back to any img
       const activeSlide = this.querySelector('.slide.active') || this.querySelector('img');
       if (!activeSlide) return;
@@ -381,7 +387,10 @@ function initCustomCursor() {
       cursor.classList.add('hover');
     } else if (
       target.closest('.gallery-item') || 
-      target.closest('.video-thumbnail')
+      target.closest('.video-thumbnail') ||
+      target.closest('.album-card') ||
+      target.closest('.category-album-trigger') ||
+      target.closest('[data-category]')
     ) {
       cursor.classList.add('clickable');
     }
@@ -401,7 +410,10 @@ function initCustomCursor() {
       cursor.classList.remove('hover');
     } else if (
       target.closest('.gallery-item') || 
-      target.closest('.video-thumbnail')
+      target.closest('.video-thumbnail') ||
+      target.closest('.album-card') ||
+      target.closest('.category-album-trigger') ||
+      target.closest('[data-category]')
     ) {
       cursor.classList.remove('clickable');
     }
@@ -418,4 +430,320 @@ function initCustomCursor() {
     dot.style.opacity = '1';
   });
 }
+
+// ============================================
+// CATEGORY ALBUMS MODAL (FOR ALL 9 CATEGORIES)
+// ============================================
+const CATEGORY_ALBUMS_DATA = {
+  portrait: {
+    title: "Portrait",
+    subtitle: "Click any album below to open the complete photo collection on Facebook",
+    albums: [
+      {
+        title: "Studio & Editorial Portraits",
+        desc: "High-fashion and editorial portraiture with cinematic studio lighting.",
+        image: "Portrait.jpg",
+        link: "https://www.facebook.com/share/p/1CHYRGbKpz/"
+      },
+      {
+        title: "Fashion & Creative Sessions",
+        desc: "Expressive portrait sessions focusing on unique personality and style.",
+        image: "profilepicture.jpg",
+        link: "https://www.facebook.com/share/p/1CHYRGbKpz/"
+      },
+      {
+        title: "Outdoor & Golden Hour",
+        desc: "Atmospheric portraits captured in stunning natural scenery and sunset glows.",
+        image: "ZCJ01719.jpg",
+        link: "https://www.facebook.com/share/p/1CHYRGbKpz/"
+      },
+      {
+        title: "Personal Branding & Headshots",
+        desc: "Polished portraits celebrating milestones, graduations, and personal branding.",
+        image: "graduation.jpg",
+        link: "https://www.facebook.com/share/p/1CHYRGbKpz/"
+      }
+    ]
+  },
+  preshoots: {
+    title: "Preshoots",
+    subtitle: "Click any album below to open the complete photo collection on Facebook",
+    albums: [
+      {
+        title: "Romantic Couples & Engagement",
+        desc: "Artistic and emotional pre-wedding shoots set in breathtaking landscapes.",
+        image: "pre shoot.jpg",
+        link: "https://www.facebook.com/share/p/1CHYRGbKpz/"
+      },
+      {
+        title: "Cinematic Scenic Preshoots",
+        desc: "Luxury engagement photo stories in iconic natural backdrops.",
+        image: "Cover.jpg",
+        link: "https://www.facebook.com/share/p/1CHYRGbKpz/"
+      },
+      {
+        title: "Urban & Conceptual Sessions",
+        desc: "Modern, vibrant pre-wedding shoots with creative architectural framing.",
+        image: "Portrait.jpg",
+        link: "https://www.facebook.com/share/p/1CHYRGbKpz/"
+      }
+    ]
+  },
+  events: {
+    title: "Events",
+    subtitle: "Click any album below to open the complete photo collection on Facebook",
+    albums: [
+      {
+        title: "Luxury Events & Celebrations",
+        desc: "Documentary-style event coverage capturing raw emotions and key highlights.",
+        image: "ZCJ01084.jpg",
+        link: "https://www.facebook.com/share/p/14TiaUHTkAd/"
+      },
+      {
+        title: "Corporate & Special Highlights",
+        desc: "Atmospheric coverage of corporate galas, launches, and celebrations.",
+        image: "Cover.jpg",
+        link: "https://www.facebook.com/share/p/14TiaUHTkAd/"
+      },
+      {
+        title: "Live Shows & Gatherings",
+        desc: "Vibrant documentation of live stage events and grand gatherings.",
+        image: "product.jpg",
+        link: "https://www.facebook.com/share/p/14TiaUHTkAd/"
+      }
+    ]
+  },
+  graduation: {
+    title: "Graduation",
+    subtitle: "Click any album below to open the complete photo collection on Facebook",
+    albums: [
+      {
+        title: "Convocation & Degree Celebrations",
+        desc: "Polished, timeless graduation portraits celebrating academic achievements.",
+        image: "graduation.jpg",
+        link: "https://www.facebook.com/share/p/1CHYRGbKpz/"
+      },
+      {
+        title: "Solo Graduate Studio Portraits",
+        desc: "High-end studio portraits in official graduation gown and cap.",
+        image: "Portrait.jpg",
+        link: "https://www.facebook.com/share/p/1CHYRGbKpz/"
+      },
+      {
+        title: "Campus Memories & Family Stories",
+        desc: "Heartwarming captures with family, mentors, and friends on campus.",
+        image: "Cover.jpg",
+        link: "https://www.facebook.com/share/p/1CHYRGbKpz/"
+      }
+    ]
+  },
+  product: {
+    title: "Product",
+    subtitle: "Click any album below to open the complete photo collection on Facebook",
+    albums: [
+      {
+        title: "Commercial Product Showcase",
+        desc: "High-end product photography designed to showcase craftsmanship and details.",
+        image: "product.jpg",
+        link: "https://www.facebook.com/share/p/1CHYRGbKpz/"
+      },
+      {
+        title: "Brand Campaigns & Styling",
+        desc: "Creative composition and lighting engineered for luxury brand storytelling.",
+        image: "Cover.jpg",
+        link: "https://www.facebook.com/share/p/1CHYRGbKpz/"
+      },
+      {
+        title: "Detail & Finish Series",
+        desc: "Detailed close-ups highlighting material textures, finishes, and design.",
+        image: "real.jpeg",
+        link: "https://www.facebook.com/share/p/1CHYRGbKpz/"
+      }
+    ]
+  },
+  automotive: {
+    title: "Automotive",
+    subtitle: "Click any album below to open the complete photo collection on Facebook",
+    albums: [
+      {
+        title: "Supercars & Automotive Styling",
+        desc: "Dynamic, high-speed, and detailed automotive captures highlighting performance.",
+        image: "ZCJ00111.JPG",
+        link: "https://www.facebook.com/share/p/17rpuSAGDu/"
+      },
+      {
+        title: "Track Action & Panning Shots",
+        desc: "Motion captures and high-speed photography on track and road.",
+        image: "car thumb.JPG",
+        link: "https://www.facebook.com/share/p/17rpuSAGDu/"
+      },
+      {
+        title: "Custom Builds & Detail Series",
+        desc: "Close-ups, interior highlights, and engineering details of custom vehicles.",
+        image: "ZCJ09528.JPG",
+        link: "https://www.facebook.com/share/p/17rpuSAGDu/"
+      }
+    ]
+  },
+  pets: {
+    title: "Pets",
+    subtitle: "Click any album below to open the complete photo collection on Facebook",
+    albums: [
+      {
+        title: "Expressive Companion Portraits",
+        desc: "Heartwarming pet photography capturing playfulness, charm, and character.",
+        image: "ZCJ09528.JPG",
+        link: "https://www.facebook.com/share/p/1Dk2MhrT1p/"
+      },
+      {
+        title: "Outdoor & Action Pet Sessions",
+        desc: "Energetic outdoor sessions celebrating your pets in natural environments.",
+        image: "ZCJ00111.JPG",
+        link: "https://www.facebook.com/share/p/1Dk2MhrT1p/"
+      },
+      {
+        title: "Pet & Family Bonds",
+        desc: "Tender, candid moments between animal companions and their families.",
+        image: "Portrait.jpg",
+        link: "https://www.facebook.com/share/p/1Dk2MhrT1p/"
+      }
+    ]
+  },
+  wedding: {
+    title: "Wedding",
+    subtitle: "Click any album below to open the complete photo collection on Facebook",
+    albums: [
+      {
+        title: "Luxury Wedding Ceremonies",
+        desc: "Timeless wedding storytelling capturing key rituals and emotional journeys.",
+        image: "wedding.jpg",
+        link: "https://www.facebook.com/share/p/1CHYRGbKpz/"
+      },
+      {
+        title: "Bride & Groom Portraiture",
+        desc: "Exquisite couple portraits showcasing fine wedding attire and romance.",
+        image: "product.jpg",
+        link: "https://www.facebook.com/share/p/1CHYRGbKpz/"
+      },
+      {
+        title: "Reception & Night Festivities",
+        desc: "Vibrant reception highlights, joyful dances, and celebratory moments.",
+        image: "ZCJ01084.jpg",
+        link: "https://www.facebook.com/share/p/1CHYRGbKpz/"
+      }
+    ]
+  },
+  "real-estate": {
+    title: "Real Estate",
+    subtitle: "Click any album below to open the complete photo collection on Facebook",
+    albums: [
+      {
+        title: "Architectural & Interior Showcase",
+        desc: "Stunning interior and exterior photography highlighting layout and natural light.",
+        image: "real.jpeg",
+        link: "https://www.facebook.com/share/p/1CHYRGbKpz/"
+      },
+      {
+        title: "Luxury Estates & Residences",
+        desc: "High-end real estate visuals for luxury residential properties and villas.",
+        image: "ZCJ01084.jpg",
+        link: "https://www.facebook.com/share/p/1CHYRGbKpz/"
+      },
+      {
+        title: "Commercial Spaces & Architecture",
+        desc: "Polished photography for commercial spaces, developments, and modern structures.",
+        image: "ZCJ00111.JPG",
+        link: "https://www.facebook.com/share/p/1CHYRGbKpz/"
+      }
+    ]
+  }
+};
+
+function initCategoryAlbumsModal() {
+  const modal = document.getElementById('portraitModal');
+  const modalClose = document.getElementById('portraitModalClose');
+  const modalBackdrop = document.getElementById('portraitModalBackdrop');
+  if (!modal) return;
+
+  const modalTitle = modal.querySelector('.portrait-modal-title');
+  const modalSubtitle = modal.querySelector('.portrait-modal-subtitle');
+  const albumsGrid = modal.querySelector('.portrait-albums-grid');
+
+  function openCategoryModal(categoryId, customFbLink) {
+    const data = CATEGORY_ALBUMS_DATA[categoryId] || CATEGORY_ALBUMS_DATA['portrait'];
+    
+    // Update Header
+    if (modalTitle) {
+      modalTitle.innerHTML = `${data.title} <span>Albums</span>`;
+    }
+    if (modalSubtitle) {
+      modalSubtitle.textContent = data.subtitle;
+    }
+
+    // Render Grid
+    if (albumsGrid) {
+      albumsGrid.innerHTML = data.albums.map(album => {
+        const link = customFbLink || album.link;
+        return `
+          <a href="${link}" target="_blank" rel="noopener noreferrer" class="album-card">
+            <div class="album-cover">
+              <img src="${album.image}" alt="${album.title}" onerror="this.src='Portrait.jpg'">
+              <div class="album-overlay">
+                <span class="album-link-badge">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.954 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
+                  View FB Album ↗
+                </span>
+              </div>
+            </div>
+            <div class="album-meta">
+              <span class="album-tag">Facebook Album</span>
+              <h3 class="album-title">${album.title}</h3>
+              <p class="album-desc">${album.desc}</p>
+            </div>
+          </a>
+        `;
+      }).join('');
+    }
+
+    modal.classList.add('active');
+    modal.setAttribute('aria-hidden', 'false');
+    document.body.style.overflow = 'hidden';
+  }
+
+  function closeModal() {
+    modal.classList.remove('active');
+    modal.setAttribute('aria-hidden', 'true');
+    document.body.style.overflow = '';
+  }
+
+  // Global click event listener for photography categories
+  document.addEventListener('click', function (e) {
+    const trigger = e.target.closest('.category-album-trigger, [data-category]');
+    if (!trigger) return;
+
+    // Skip if clicking inside the modal content itself
+    if (e.target.closest('.portrait-modal-content')) return;
+
+    const itemElem = trigger.closest('[data-category]') || trigger;
+    const categoryId = itemElem.getAttribute('data-category');
+    const customFbLink = itemElem.getAttribute('data-fb-link');
+
+    if (categoryId && CATEGORY_ALBUMS_DATA[categoryId]) {
+      e.preventDefault();
+      e.stopPropagation();
+      openCategoryModal(categoryId, customFbLink);
+    }
+  });
+
+  if (modalClose) modalClose.addEventListener('click', closeModal);
+  if (modalBackdrop) modalBackdrop.addEventListener('click', closeModal);
+
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape' && modal.classList.contains('active')) {
+      closeModal();
+    }
+  });
+}
+
+
 
