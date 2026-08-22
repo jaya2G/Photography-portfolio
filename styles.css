@@ -2664,7 +2664,8 @@ input {
     border-color: var(--gold-border);
 }
 
-.quick-addon-card.checked {
+.quick-addon-card.checked,
+.quick-addon-card:has(.quick-addon-checkbox:checked) {
     background: var(--gold-soft);
     border-color: var(--gold);
     box-shadow: 0 4px 20px rgba(255, 176, 0, 0.15);
@@ -2675,6 +2676,7 @@ input {
     opacity: 0;
     width: 0;
     height: 0;
+    pointer-events: none;
 }
 
 .quick-addon-custom-check {
@@ -2690,12 +2692,14 @@ input {
     transition: var(--transition);
 }
 
-.quick-addon-card.checked .quick-addon-custom-check {
+.quick-addon-card.checked .quick-addon-custom-check,
+.quick-addon-card:has(.quick-addon-checkbox:checked) .quick-addon-custom-check {
     background: var(--gold);
     border-color: var(--gold);
 }
 
-.quick-addon-card.checked .quick-addon-custom-check::after {
+.quick-addon-card.checked .quick-addon-custom-check::after,
+.quick-addon-card:has(.quick-addon-checkbox:checked) .quick-addon-custom-check::after {
     content: '✓';
     color: #111;
     font-size: 0.8rem;
@@ -2787,44 +2791,100 @@ input {
     display: flex;
     align-items: center;
     gap: 1.2rem;
-    background: rgba(20, 20, 21, 0.92);
+    background: rgba(14, 14, 15, 0.94);
     border: 1px solid var(--gold-border);
-    padding: 0.75rem 1.4rem;
+    padding: 0.65rem 0.8rem 0.65rem 1.4rem;
     border-radius: 100px;
     backdrop-filter: blur(16px);
     -webkit-backdrop-filter: blur(16px);
-    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.6);
-    transform: translateY(120px);
-    opacity: 0;
-    visibility: hidden;
-    transition: transform 0.4s var(--transition), opacity 0.4s var(--transition), visibility 0.4s var(--transition);
-}
-
-.calc-floating-bar.active {
+    box-shadow: 0 14px 40px rgba(0, 0, 0, 0.6), 0 0 25px rgba(255, 176, 0, 0.15);
     transform: translateY(0);
     opacity: 1;
     visibility: visible;
+    transition: transform 0.4s var(--transition), opacity 0.4s var(--transition), box-shadow 0.4s var(--transition), border-color 0.4s var(--transition);
 }
 
+.calc-floating-bar.has-items {
+    border-color: var(--gold);
+    box-shadow: 0 14px 45px rgba(0, 0, 0, 0.7), 0 0 35px rgba(255, 176, 0, 0.3);
+}
+
+.calc-floating-info,
 .calc-floating-bar-info {
     display: flex;
-    flex-direction: column;
-    gap: 0.15rem;
+    align-items: center;
+    gap: 0.9rem;
 }
 
 .calc-floating-badge {
     font-size: 0.68rem;
     font-weight: 800;
-    letter-spacing: 0.1em;
-    color: var(--gold);
+    letter-spacing: 0.08em;
+    background: var(--gold);
+    color: #111;
+    padding: 0.25rem 0.65rem;
+    border-radius: 50px;
     text-transform: uppercase;
+    white-space: nowrap;
+}
+
+.calc-floating-text {
+    display: flex;
+    flex-direction: column;
+    gap: 0.1rem;
+}
+
+.calc-floating-title {
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    line-height: 1;
 }
 
 .calc-floating-price {
     font-family: 'Outfit', sans-serif;
-    font-size: 1.1rem;
+    font-size: 1.15rem;
     font-weight: 800;
     color: white;
+    line-height: 1.1;
+}
+
+.calc-floating-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.55rem;
+    background: linear-gradient(135deg, #ffb000 0%, #ff9500 100%);
+    color: #111;
+    font-family: 'Outfit', sans-serif;
+    font-size: 0.88rem;
+    font-weight: 700;
+    padding: 0.75rem 1.4rem;
+    border: none;
+    border-radius: 100px;
+    cursor: pointer;
+    box-shadow: 0 4px 18px rgba(255, 176, 0, 0.35);
+    transition: var(--transition);
+    white-space: nowrap;
+}
+
+.calc-floating-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(255, 176, 0, 0.55);
+    filter: brightness(1.08);
+}
+
+.calc-floating-btn:active {
+    transform: translateY(0);
+}
+
+.calc-floating-btn svg {
+    transition: transform 0.25s ease;
+}
+
+.calc-floating-btn:hover svg {
+    transform: translateX(3px);
 }
 
 
@@ -3285,6 +3345,38 @@ input {
         gap: 20px;
 
         text-align: center;
+    }
+
+    .calc-drawer {
+        width: 100vw;
+        right: -100vw;
+    }
+
+    .calc-floating-bar {
+        bottom: 1.2rem;
+        right: 1.2rem;
+        left: 1.2rem;
+        padding: 0.55rem 0.65rem 0.55rem 1rem;
+        justify-content: space-between;
+        gap: 0.6rem;
+    }
+
+    .calc-floating-info,
+    .calc-floating-bar-info {
+        gap: 0.6rem;
+    }
+
+    .calc-floating-title {
+        display: none;
+    }
+
+    .calc-floating-price {
+        font-size: 1rem;
+    }
+
+    .calc-floating-btn {
+        padding: 0.6rem 1rem;
+        font-size: 0.8rem;
     }
 }
 
