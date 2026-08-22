@@ -15,6 +15,7 @@ document.addEventListener('DOMContentLoaded', function () {
   initVideoThumbnails();
   initCursorGallery();
   initCustomCursor();
+  initRateCardFeatures();
 });
 
 // ============================================
@@ -745,5 +746,360 @@ function initCategoryAlbumsModal() {
   });
 }
 
+// ============================================
+// RATE CARD & ESTIMATE CALCULATOR
+// ============================================
+function initRateCardFeatures() {
+  const rateCardSection = document.getElementById('rate-card');
+  if (!rateCardSection) return;
 
+  // Selected items state: Array of { id, name, price, type: 'package'|'addon' }
+  let selectedItems = [];
 
+  // Elements
+  const pills = document.querySelectorAll('.rc-pill');
+  const blocks = document.querySelectorAll('.rc-category-block');
+  const searchInput = document.getElementById('rcSearchInput');
+  const searchClear = document.getElementById('rcSearchClear');
+
+  const openCalcBtn = document.getElementById('openCalcBtn');
+  const closeCalcBtn = document.getElementById('closeCalcBtn');
+  const drawerBackdrop = document.getElementById('calcDrawerBackdrop');
+  const drawer = document.getElementById('calcDrawer');
+  const itemsList = document.getElementById('calcItemsList');
+  const itemCountBadge = document.getElementById('calcItemCount');
+  const drawerTotal = document.getElementById('calcDrawerTotal');
+  const drawerRetainer = document.getElementById('calcDrawerRetainer');
+  const clearBtn = document.getElementById('calcClearBtn');
+  const whatsappBtn = document.getElementById('calcWhatsappBtn');
+
+  const floatingBar = document.getElementById('calcFloatingBar');
+  const floatingBadge = document.getElementById('calcFloatingBadge');
+  const floatingPrice = document.getElementById('calcFloatingPrice');
+
+  // 1. Category Filtering Pills
+  pills.forEach(pill => {
+    pill.addEventListener('click', function () {
+      pills.forEach(p => p.classList.remove('active'));
+      this.classList.add('active');
+
+      const cat = this.getAttribute('data-rc-category');
+      blocks.forEach(block => {
+        if (cat === 'all' || block.getAttribute('data-rc-cat') === cat) {
+          block.style.display = 'block';
+          block.classList.add('active');
+        } else {
+          block.style.display = 'none';
+        }
+      });
+    });
+  });
+
+  // 2. Real-time Search Filter
+  if (searchInput) {
+    searchInput.addEventListener('input', function () {
+      const query = this.value.toLowerCase().trim();
+      if (searchClear) {
+        searchClear.style.display = query.length > 0 ? 'flex' : 'none';
+      }
+
+      if (!query) {
+        // Reset view based on active pill
+        const activePill = document.querySelector('.rc-pill.active');
+        const activeCat = activePill ? activePill.getAttribute('data-rc-category') : 'all';
+        blocks.forEach(block => {
+          if (activeCat === 'all' || block.getAttribute('data-rc-cat') === activeCat) {
+            block.style.display = 'block';
+            block.querySelectorAll('.rc-card, .rc-addon-card, .rc-term-card, .rc-group').forEach(el => el.style.display = '');
+          } else {
+            block.style.display = 'none';
+          }
+        });
+        return;
+      }
+
+      // Search matching cards across all blocks
+      blocks.forEach(block => {
+        let blockHasMatch = false;
+        const cards = block.querySelectorAll('.rc-card, .rc-addon-card, .rc-term-card');
+        
+        cards.forEach(card => {
+          const text = (card.textContent + ' ' + (card.getAttribute('data-search-terms') || '')).toLowerCase();
+          if (text.includes(query)) {
+            card.style.display = '';
+            blockHasMatch = true;
+          } else {
+            card.style.display = 'none';
+          }
+        });
+
+        block.style.display = blockHasMatch ? 'block' : 'none';
+        if (blockHasMatch) block.classList.add('active');
+      });
+    });
+
+    if (searchClear) {
+      searchClear.addEventListener('click', function () {
+        searchInput.value = '';
+        searchInput.dispatchEvent(new Event('input'));
+        searchInput.focus();
+      });
+    }
+  }
+
+  // 3. Calculator Drawer Open/Close
+  function openDrawer() {
+    if (drawer) drawer.classList.add('active');
+    if (drawerBackdrop) drawerBackdrop.classList.add('active');
+    document.body.style.overflow = 'hidden';
+  }
+
+  function closeDrawer() {
+    if (drawer) drawer.classList.remove('active');
+    if (drawerBackdrop) drawerBackdrop.classList.remove('active');
+    document.body.style.overflow = '';
+  }
+
+  if (openCalcBtn) openCalcBtn.addEventListener('click', openDrawer);
+  if (closeCalcBtn) closeCalcBtn.addEventListener('click', closeDrawer);
+  if (drawerBackdrop) drawerBackdrop.addEventListener('click', closeDrawer);
+
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape' && drawer && drawer.classList.contains('active')) {
+      closeDrawer();
+    }
+  });
+
+  // Price Parsing and Currency Formatting Helper
+  function parsePrice(val) {
+    if (typeof val === 'number') return val;
+    if (!val) return 0;
+    const clean = val.toString().replace(/[^0-9-]/g, '');
+    if (clean.includes('-')) {
+      const parts = clean.split('-');
+      return parseInt(parts[0], 10) || 0;
+    }
+    return parseInt(clean, 10) || 0;
+  }
+
+  function formatLKR(num) {
+    return 'Rs. ' + num.toLocaleString('en-US');
+  }
+
+  // Update UI & Calculations
+  function updateCalculatorUI() {
+    const total = selectedItems.reduce((sum, item) => sum + parsePrice(item.price), 0);
+    const retainer = Math.round(total * 0.3);
+    const count = selectedItems.length;
+
+    // Floating trigger bar
+    if (floatingBadge) floatingBadge.textContent = `${count} ${count === 1 ? 'item' : 'items'}`;
+    if (floatingPrice) floatingPrice.textContent = formatLKR(total);
+    if (floatingBar) {
+      if (count > 0) {
+        floatingBar.classList.add('active');
+      } else {
+        floatingBar.classList.remove('active');
+      }
+    }
+
+    // Drawer Header count
+    if (itemCountBadge) itemCountBadge.textContent = `${count} ${count === 1 ? 'item' : 'items'}`;
+
+    // Drawer Totals
+    if (drawerTotal) drawerTotal.textContent = formatLKR(total);
+    if (drawerRetainer) drawerRetainer.textContent = formatLKR(retainer);
+
+    // Render selected items in drawer
+    if (itemsList) {
+      if (count === 0) {
+        itemsList.innerHTML = `
+          <div class="empty-state" id="emptyCartState">
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" opacity="0.4"><circle cx="12" cy="12" r="10"/><path d="M8 12h8"/></svg>
+            <p>No items added yet.<br/>Click <strong>"Select Package"</strong> or <strong>"Add to Estimate"</strong> on any package above!</p>
+          </div>
+        `;
+      } else {
+        itemsList.innerHTML = selectedItems.map(item => `
+          <div class="calc-selected-card" data-id="${item.id}">
+            <div class="calc-selected-info">
+              <span class="calc-selected-name">${item.name}</span>
+              <span class="calc-selected-price">${formatLKR(parsePrice(item.price))}</span>
+            </div>
+            <button class="btn-remove-selected" data-remove-id="${item.id}" aria-label="Remove item">&times;</button>
+          </div>
+        `).join('');
+      }
+    }
+
+    // Sync button states on package cards
+    document.querySelectorAll('.rc-card').forEach(card => {
+      const id = card.getAttribute('data-package-id');
+      const btn = card.querySelector('.rc-select-btn');
+      const btnText = btn ? btn.querySelector('.btn-text') : null;
+      const btnIcon = btn ? btn.querySelector('.btn-icon') : null;
+      const isSelected = selectedItems.some(i => i.id === id);
+
+      if (isSelected) {
+        card.classList.add('is-selected');
+        if (btn) btn.classList.add('selected');
+        if (btnText) btnText.textContent = 'Selected ✓';
+        if (btnIcon) btnIcon.textContent = '✓';
+      } else {
+        card.classList.remove('is-selected');
+        if (btn) btn.classList.remove('selected');
+        if (btnText) btnText.textContent = 'Select Package';
+        if (btnIcon) btnIcon.textContent = '+';
+      }
+    });
+
+    // Sync Add-on chips
+    document.querySelectorAll('.rc-addon-chip').forEach(chip => {
+      const id = chip.getAttribute('data-addon-id');
+      const btn = chip.querySelector('.rc-addon-btn');
+      const isSelected = selectedItems.some(i => i.id === id);
+      if (isSelected) {
+        chip.classList.add('active');
+        if (btn) btn.textContent = '✓';
+      } else {
+        chip.classList.remove('active');
+        if (btn) btn.textContent = '+';
+      }
+    });
+
+    // Sync Section 05 Add-on cards
+    document.querySelectorAll('.rc-addon-card').forEach(card => {
+      const id = card.getAttribute('data-addon-id');
+      const btn = card.querySelector('.rc-addon-toggle-btn');
+      const isSelected = selectedItems.some(i => i.id === id);
+      if (isSelected) {
+        card.classList.add('active');
+        if (btn) {
+          btn.textContent = 'Added ✓';
+          btn.classList.add('btn-added');
+        }
+      } else {
+        card.classList.remove('active');
+        if (btn) {
+          btn.textContent = 'Add to Estimate';
+          btn.classList.remove('btn-added');
+        }
+      }
+    });
+
+    // Sync Drawer Quick Addon checkboxes
+    document.querySelectorAll('.quick-addon-checkbox').forEach(cb => {
+      const id = cb.getAttribute('data-addon-id');
+      cb.checked = selectedItems.some(i => i.id === id);
+    });
+
+    // WhatsApp Link Generation
+    if (whatsappBtn) {
+      if (count === 0) {
+        whatsappBtn.href = "https://wa.me/94723439207?text=Hi%20Zcejey%20Fotography,%20I'm%20interested%20in%20inquiring%20about%20your%20photography%20services.";
+      } else {
+        let msg = `*Hi Zcejey Fotography!* 👋\nI generated a custom estimate on your website rate card:\n\n*Selected Package(s) & Add-Ons:*\n`;
+        selectedItems.forEach((item, idx) => {
+          msg += `${idx + 1}. ${item.name} — ${formatLKR(parsePrice(item.price))}\n`;
+        });
+        msg += `\n*Estimated Total:* ${formatLKR(total)}\n*30% Advance Retainer:* ${formatLKR(retainer)}\n\nI would love to check availability for my event. Thank you!`;
+        whatsappBtn.href = `https://wa.me/94723439207?text=${encodeURIComponent(msg)}`;
+      }
+    }
+  }
+
+  // Toggle item in estimate
+  function toggleItem(item) {
+    const existingIndex = selectedItems.findIndex(i => i.id === item.id);
+    if (existingIndex > -1) {
+      selectedItems.splice(existingIndex, 1);
+    } else {
+      selectedItems.push(item);
+    }
+    updateCalculatorUI();
+  }
+
+  // Event Listeners for Packages & Addons
+  rateCardSection.addEventListener('click', function (e) {
+    // 1. Select Package Button
+    const selectBtn = e.target.closest('.rc-select-btn');
+    if (selectBtn) {
+      const card = selectBtn.closest('.rc-card');
+      if (card) {
+        const id = card.getAttribute('data-package-id');
+        const name = card.getAttribute('data-package-name') || card.querySelector('.rc-card-title')?.textContent.trim();
+        const price = card.getAttribute('data-package-price');
+        toggleItem({ id, name, price, type: 'package' });
+      }
+      return;
+    }
+
+    // 2. Addon chip button
+    const addonBtn = e.target.closest('.rc-addon-btn, .rc-addon-chip');
+    if (addonBtn) {
+      const chip = addonBtn.closest('.rc-addon-chip');
+      if (chip) {
+        const id = chip.getAttribute('data-addon-id');
+        const name = chip.getAttribute('data-addon-name') || chip.querySelector('.rc-addon-title')?.textContent.trim();
+        const price = chip.getAttribute('data-addon-price');
+        toggleItem({ id, name, price, type: 'addon' });
+      }
+      return;
+    }
+
+    // 3. Section 05 Add-on card button
+    const addonToggleBtn = e.target.closest('.rc-addon-toggle-btn');
+    if (addonToggleBtn) {
+      const card = addonToggleBtn.closest('.rc-addon-card');
+      if (card) {
+        const id = card.getAttribute('data-addon-id');
+        const name = card.getAttribute('data-addon-name') || card.querySelector('.rc-addon-card-title')?.textContent.trim();
+        const price = card.getAttribute('data-addon-price');
+        toggleItem({ id, name, price, type: 'addon' });
+      }
+      return;
+    }
+  });
+
+  // Drawer Remove Button Listener
+  if (itemsList) {
+    itemsList.addEventListener('click', function (e) {
+      const removeBtn = e.target.closest('.btn-remove-selected');
+      if (removeBtn) {
+        const removeId = removeBtn.getAttribute('data-remove-id');
+        selectedItems = selectedItems.filter(i => i.id !== removeId);
+        updateCalculatorUI();
+      }
+    });
+  }
+
+  // Drawer Quick Add-On Checkbox Listener
+  document.querySelectorAll('.quick-addon-checkbox').forEach(checkbox => {
+    checkbox.addEventListener('change', function () {
+      const card = this.closest('.quick-addon-card');
+      const id = this.getAttribute('data-addon-id');
+      const name = card.getAttribute('data-addon-name');
+      const price = card.getAttribute('data-addon-price');
+
+      if (this.checked) {
+        if (!selectedItems.some(i => i.id === id)) {
+          selectedItems.push({ id, name, price, type: 'addon' });
+        }
+      } else {
+        selectedItems = selectedItems.filter(i => i.id !== id);
+      }
+      updateCalculatorUI();
+    });
+  });
+
+  // Clear All Button
+  if (clearBtn) {
+    clearBtn.addEventListener('click', function () {
+      selectedItems = [];
+      updateCalculatorUI();
+    });
+  }
+
+  // Initial calculation UI render
+  updateCalculatorUI();
+}
